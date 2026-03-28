@@ -1,0 +1,84 @@
+# ─────────────────────────────────────────────
+# .gitignore — Legal RAG Comparator (TTCS)
+# ─────────────────────────────────────────────
+
+
+# ── Môi trường (QUAN TRỌNG) ───────────────────
+.env
+!.env.example
+
+
+# ── Virtual environments ──────────────────────
+venv/
+.venv/
+env/
+ENV/
+
+
+# ── Vector database ───────────────────────────
+# ChromaDB persistent storage — có thể nặng hàng GB
+data/chroma_db/
+
+
+# ── Model weights ─────────────────────────────
+# Không commit file model LLM (~4.5GB)
+*.gguf
+*.bin
+*.safetensors
+*.pt
+*.pth
+*.onnx
+
+
+# ── Backend runtime ───────────────────────────
+backend/uploads/
+backend/logs/
+
+
+# ── Evaluation results ────────────────────────
+# Giữ ground_truth/, bỏ results/ (tự sinh khi chạy)
+evaluation/results/
+
+
+# ── Python ────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+*.egg
+*.egg-info/
+dist/
+build/
+
+
+# ── Jupyter ───────────────────────────────────
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/
+
+
+# ── IDE / Editor ──────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+
+# ── OS ────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+Desktop.ini
+
+
+# ── Streamlit ─────────────────────────────────
+.streamlit/secrets.toml
+
+
+# ── uv / pip ──────────────────────────────────
+.uv/
+uv.lock
+.python-version
+pip-log.txt

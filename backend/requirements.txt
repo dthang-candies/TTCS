@@ -1,0 +1,30 @@
+# backend/requirements.txt
+# Cài: pip install -r requirements.txt
+
+# API
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+python-multipart==0.0.12
+
+# LLM
+requests==2.32.3
+
+# Embedding
+FlagEmbedding==1.2.11
+torch>=2.0.0
+numpy>=1.24.0
+
+# Vector DB
+chromadb==0.5.23
+
+# Document parsing
+python-docx==1.1.2
+pdfplumber==0.11.4
+pymupdf==1.24.14          # fallback PDF nếu pdfplumber fail
+
+# Utilities
+pydantic==2.9.2
+python-dotenv==1.0.1
+
+# Optional: chạy trên Colab
+# pyngrok==7.2.1
