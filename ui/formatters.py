@@ -46,16 +46,22 @@ def muc_do_html(muc_do: str) -> str:
     )
 
 
-def citation_block(citation: dict | None, label: str, doc_name: str = "") -> str:
+def citation_block(citation: dict | None, label: str, doc_name: str = "", theme: str = "light") -> str:
+    dark = theme == "dark"
     title = doc_name if doc_name else f"Tai lieu {label}"
+
+    empty_bg = "#1e293b" if dark else "#f9fafb"
+    empty_border = "#334155" if dark else "#e5e7eb"
+    empty_color = "#64748b" if dark else "#9ca3af"
+
     if not citation:
         return (
             f'<div style="'
             f'padding:12px 16px;'
-            f'background:#f9fafb;'
-            f'border:1px solid #e5e7eb;'
+            f'background:{empty_bg};'
+            f'border:1px solid {empty_border};'
             f'border-radius:4px;'
-            f'color:#9ca3af;'
+            f'color:{empty_color};'
             f'font-size:0.82rem;'
             f'">'
             f'Khong co trich dan tu {title}.'
@@ -68,12 +74,15 @@ def citation_block(citation: dict | None, label: str, doc_name: str = "") -> str
 
     if label == "A":
         border_color = "#3b82f6"
-        header_bg    = "#eff6ff"
-        header_color = "#1e40af"
+        header_bg    = "#1e3a5f" if dark else "#eff6ff"
+        header_color = "#93c5fd" if dark else "#1e40af"
     else:
         border_color = "#10b981"
-        header_bg    = "#ecfdf5"
-        header_color = "#065f46"
+        header_bg    = "#064e3b" if dark else "#ecfdf5"
+        header_color = "#6ee7b7" if dark else "#065f46"
+
+    content_bg = "#0f172a" if dark else "#ffffff"
+    content_color = "#e2e8f0" if dark else "#1f2937"
 
     path_row = ""
     if path:
@@ -98,11 +107,11 @@ def citation_block(citation: dict | None, label: str, doc_name: str = "") -> str
         f'color:{header_color};'
         f'letter-spacing:0.07em;'
         f'">{title.upper()}</div>'
-        f'<div style="padding:12px 16px;background:#ffffff;">'
+        f'<div style="padding:12px 16px;background:{content_bg};">'
         f'{path_row}'
         f'<div style="'
         f'font-size:0.84rem;'
-        f'color:#1f2937;'
+        f'color:{content_color};'
         f'line-height:1.65;'
         f'white-space:pre-wrap;'
         f'">{text}</div>'

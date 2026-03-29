@@ -145,6 +145,7 @@ MOCK_COMPARE = {
     "changes_added":     sum(1 for c in MOCK_CHANGES if c["change_type"] == "THÊM"),
     "changes_deleted":   sum(1 for c in MOCK_CHANGES if c["change_type"] == "XÓA"),
     "changes_modified":  sum(1 for c in MOCK_CHANGES if c["change_type"] == "SỬA"),
+    "changes_reordered": sum(1 for c in MOCK_CHANGES if c["change_type"] == "DOI VI TRI"),
     "changes_unchanged": sum(1 for c in MOCK_CHANGES if c["change_type"] == "KHÔNG ĐỔI NỘI DUNG"),
     "change_list":       MOCK_CHANGES,
     "tom_tat": (

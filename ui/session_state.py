@@ -14,6 +14,8 @@ def init():
         "compare_result":   None,
         "file_a_name":      None,
         "file_b_name":      None,
+        "ui_theme":         "light",
+        "hdr_check_msg":    None,
     }
     for k, v in defaults.items():
         if k not in st.session_state:
@@ -26,6 +28,7 @@ def reset():
         st.session_state[k] = None
     st.session_state["ingest_done"]  = False
     st.session_state["compare_done"] = False
+    st.session_state["hdr_check_msg"] = None
 
 
 def set_ingest(result: dict):

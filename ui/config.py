@@ -12,6 +12,7 @@ DEMO_MODE           = os.getenv("DEMO_MODE", "true").lower() == "true"
 BACKEND_URL         = os.getenv("BACKEND_URL",         "http://localhost:8000")
 API_TIMEOUT         = int(os.getenv("API_TIMEOUT",        "180"))
 API_INGEST_TIMEOUT  = int(os.getenv("API_INGEST_TIMEOUT", "300"))
+MAX_FILE_MB         = int(os.getenv("MAX_FILE_MB", "20"))
 
 APP_TITLE    = "Legal RAG Comparator"
 APP_SUBTITLE = "So sanh van ban hop dong tieng Viet"

@@ -8,7 +8,8 @@ from formatters import badge_html, muc_do_html, citation_block
 from config import CHANGE_BORDER
 
 
-def render(item: dict, index: int, name_a: str = "Tai lieu A", name_b: str = "Tai lieu B"):
+def render(item: dict, index: int, name_a: str = "Tai lieu A", name_b: str = "Tai lieu B", theme: str = "light"):
+    dark = theme == "dark"
     change_type  = item.get("change_type", "SUA")
     left_color   = CHANGE_BORDER.get(change_type, "#9ca3af")
     mo_ta        = item.get("mo_ta",    "")
@@ -18,6 +19,13 @@ def render(item: dict, index: int, name_a: str = "Tai lieu A", name_b: str = "Ta
     citation_a   = item.get("citation_a")
     citation_b   = item.get("citation_b")
     has_citation = bool(citation_a or citation_b)
+
+    # Theme-aware colors
+    mo_ta_color = "#f1f5f9" if dark else "#111827"
+    ly_giai_color = "#94a3b8" if dark else "#6b7280"
+    vi_tri_color = "#cbd5e1" if dark else "#6b7280"
+    vi_tri_bg = "#334155" if dark else "#f3f4f6"
+    divider_color = "#334155" if dark else "#f3f4f6"
 
     # ── Wrapper voi duong ke trai mau ──────────────────────────────────
     st.markdown(
@@ -40,9 +48,9 @@ def render(item: dict, index: int, name_a: str = "Tai lieu A", name_b: str = "Ta
             st.markdown(
                 f'<span style="'
                 f'font-size:0.80rem;'
-                f'color:#6b7280;'
+                f'color:{vi_tri_color};'
                 f'font-family:monospace;'
-                f'background:#f3f4f6;'
+                f'background:{vi_tri_bg};'
                 f'padding:2px 8px;'
                 f'border-radius:3px;'
                 f'">{vi_tri}</span>',
@@ -57,7 +65,7 @@ def render(item: dict, index: int, name_a: str = "Tai lieu A", name_b: str = "Ta
         f'<p style="'
         f'font-size:0.92rem;'
         f'font-weight:500;'
-        f'color:#111827;'
+        f'color:{mo_ta_color};'
         f'margin:8px 0 4px;'
         f'line-height:1.5;'
         f'">{mo_ta}</p>',
@@ -69,7 +77,7 @@ def render(item: dict, index: int, name_a: str = "Tai lieu A", name_b: str = "Ta
         st.markdown(
             f'<p style="'
             f'font-size:0.80rem;'
-            f'color:#6b7280;'
+            f'color:{ly_giai_color};'
             f'margin:0 0 6px;'
             f'font-style:italic;'
             f'">{ly_giai}</p>',
@@ -83,13 +91,13 @@ def render(item: dict, index: int, name_a: str = "Tai lieu A", name_b: str = "Ta
 
             with ca_col:
                 st.markdown(
-                    citation_block(citation_a, "A", name_a),
+                    citation_block(citation_a, "A", name_a, theme=theme),
                     unsafe_allow_html=True,
                 )
 
             with cb_col:
                 st.markdown(
-                    citation_block(citation_b, "B", name_b),
+                    citation_block(citation_b, "B", name_b, theme=theme),
                     unsafe_allow_html=True,
                 )
 
@@ -97,6 +105,6 @@ def render(item: dict, index: int, name_a: str = "Tai lieu A", name_b: str = "Ta
 
     # Duong ke mo giua cac card
     st.markdown(
-        '<div style="height:1px;background:#f3f4f6;margin:14px 0;"></div>',
+        f'<div style="height:1px;background:{divider_color};margin:14px 0;"></div>',
         unsafe_allow_html=True,
     )
