@@ -1,14 +1,3 @@
-"""
-backend/core/llm_engine.py  –  Qwen2.5-7b optimised build
-
-Các fix so với bản cũ:
-  1. Thêm num_ctx / repeat_penalty / top_p vào Ollama options  →  giảm hallucination
-  2. Prompt rút gọn + cấu trúc rõ ràng hơn cho 7b (ít token hơn, nhưng hướng dẫn chính xác hơn)
-  3. _parse_list mạnh hơn: xử lý thêm trường hợp Qwen thêm text trước/sau JSON
-  4. Temperature cố định 0.05 (JSON task), bất kể config
-  5. _fix_item: chuẩn hóa muc_do TRƯỚC khi trả về (tránh "Trung Bình", "CAO", ...)
-  6. Fallback SUA chỉ dùng 120 ký tự đầu mỗi đoạn (không bị truncate giữa chừng)
-"""
 from __future__ import annotations
 import sys, os, json, re, logging, requests
 from typing import Optional, List
@@ -89,7 +78,7 @@ class LLMEngine:
         loc = f"Vị trí: {context}\n\n" if context else ""
 
         # FIX: giới hạn độ dài đoạn gửi vào LLM (tránh vượt num_ctx)
-        MAX_CHUNK_CHARS = 600
+        MAX_CHUNK_CHARS = 1500
         a_text = text_a[:MAX_CHUNK_CHARS].strip()
         b_text = text_b[:MAX_CHUNK_CHARS].strip()
 

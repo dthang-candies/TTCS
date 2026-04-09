@@ -1,0 +1,11 @@
+{
+  "pair_id": "pair_01",
+  "file_a": "Hợp đồng gốc.docx",
+  "file_b": "Hợp đồng bản sao.docx",
+  "changes": [
+    { "change_type": "SUA", "vi_tri": "Điều 3" },
+    { "change_type": "SUA", "vi_tri": "Điều 4" },
+    { "change_type": "SUA", "vi_tri": "Điều 7" },
+    { "change_type": "SUA", "vi_tri": "Điều 8" }
+  ]
+}

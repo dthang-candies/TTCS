@@ -13,15 +13,15 @@ UPLOAD_DIR    = str(BASE_DIR / "uploads")
 LOG_DIR       = str(BASE_DIR / "logs")
 
 # ── LLM (Ollama / Qwen2.5-7b) ─────────────────────────────────────────
-# FIX: đổi sang 7b; temperature thấp để JSON ổn định
+
 LLM_BASE_URL       = os.getenv("LLM_BASE_URL",    "http://localhost:11434")
 LLM_MODEL_NAME     = os.getenv("LLM_MODEL_NAME",  "qwen2.5:7b")
-LLM_TEMPERATURE    = float(os.getenv("LLM_TEMPERATURE",    "0.05"))   # Fix: 0.1→0.05 JSON ổn hơn
-LLM_MAX_TOKENS     = int(os.getenv("LLM_MAX_TOKENS",       "2048"))   # Fix: 4096→2048
-LLM_TIMEOUT        = int(os.getenv("LLM_TIMEOUT",          "180"))    # Fix: 120→180 (7b chậm hơn)
-LLM_NUM_CTX        = int(os.getenv("LLM_NUM_CTX",          "4096"))   # FIX MỚI: bắt buộc set
-LLM_REPEAT_PENALTY = float(os.getenv("LLM_REPEAT_PENALTY", "1.1"))    # FIX MỚI: giảm hallucination
-LLM_TOP_P          = float(os.getenv("LLM_TOP_P",          "0.9"))    # FIX MỚI: giới hạn sampling
+LLM_TEMPERATURE    = float(os.getenv("LLM_TEMPERATURE",    "0.05"))   
+LLM_MAX_TOKENS     = int(os.getenv("LLM_MAX_TOKENS",       "2048"))   
+LLM_TIMEOUT        = int(os.getenv("LLM_TIMEOUT",          "600"))    
+LLM_NUM_CTX        = int(os.getenv("LLM_NUM_CTX",          "4096"))   
+LLM_REPEAT_PENALTY = float(os.getenv("LLM_REPEAT_PENALTY", "1.1"))    
+LLM_TOP_P          = float(os.getenv("LLM_TOP_P",          "0.9"))   
 
 # ── Embedding (BGE-M3) ────────────────────────────────────────────────
 EMBEDDING_MODEL  = os.getenv("EMBEDDING_MODEL", "BAAI/bge-m3")
@@ -33,10 +33,9 @@ EMBEDDING_MAXLEN = int(os.getenv("EMBEDDING_MAXLEN", "512"))
 CHROMA_METRIC = os.getenv("CHROMA_METRIC", "cosine")
 
 # ── Chunking ──────────────────────────────────────────────────────────
-# FIX: giảm CHUNK_MAX 1200→700 để Qwen2.5-7b xử lý được cả 2 đoạn trong 1 prompt
-# Estimate: 700 chars ≈ 350 tokens × 2 docs + 500 overhead ≈ 1200 tokens ≤ 4096
-CHUNK_MAX = int(os.getenv("CHUNK_MAX", "700"))
-CHUNK_OVL = int(os.getenv("CHUNK_OVL", "100"))
+
+CHUNK_MAX = int(os.getenv("CHUNK_MAX", "2500"))
+CHUNK_OVL = int(os.getenv("CHUNK_OVL", "300"))
 CHUNK_MIN = int(os.getenv("CHUNK_MIN",  "30"))
 
 # ── Comparison ────────────────────────────────────────────────────────
@@ -44,7 +43,7 @@ CHUNK_MIN = int(os.getenv("CHUNK_MIN",  "30"))
 SIM_THRESHOLD       = float(os.getenv("SIM_THRESHOLD",       "0.75"))
 MERGE_SIM_THRESHOLD = float(os.getenv("MERGE_SIM_THRESHOLD", "0.68"))
 MAX_MERGE_WINDOW    = int(os.getenv("MAX_MERGE_WINDOW",       "2"))
-CITATION_MIN_LEN    = int(os.getenv("CITATION_MIN_LEN",       "15"))  # Fix: 20→15
+CITATION_MIN_LEN    = int(os.getenv("CITATION_MIN_LEN",       "15"))  
 MAX_CHANGES         = int(os.getenv("MAX_CHANGES",             "50"))
 
 # ── Severity thresholds (dùng trong comparator._infer_severity) ───────

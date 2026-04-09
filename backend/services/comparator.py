@@ -69,7 +69,7 @@ class Comparator:
             return items or [ChangeItem(
                 change_type=ChangeType.UNCHANGED,
                 mo_ta="Nội dung 2 đoạn tương đương sau khi chuẩn hóa.",
-                vi_tri=pair.chunk_a.metadata.heading_path or pair.chunk_b.metadata.heading_path,
+                vi_tri=self._resolve_vi_tri("", pair.chunk_a, pair.chunk_b),
                 citation_a=None, citation_b=None, muc_do="thap",
             )]
 
@@ -107,11 +107,15 @@ class Comparator:
             return None
 
         if heading_changed:
-            mo_ta = f"Điều khoản đổi số thứ tự: '{dieu_a}' → '{dieu_b}'."
-            vi_tri = f"{dieu_a} (A) → {dieu_b} (B)"
+            dieu_a_clean = self._extract_dieu_number(dieu_a)
+            dieu_b_clean = self._extract_dieu_number(dieu_b)
+            mo_ta = f"Điều khoản đổi số thứ tự: '{dieu_a_clean}' → '{dieu_b_clean}'."
+            vi_tri = f"{dieu_a_clean} (A) → {dieu_b_clean} (B)"
         else:
+            vi_tri_a = self._resolve_vi_tri("", ca, ca)
+            vi_tri_b = self._resolve_vi_tri("", cb, cb)
             mo_ta = "Nội dung tương ứng được di chuyển sang vị trí khác."
-            vi_tri = f"{ca.metadata.heading_path} → {cb.metadata.heading_path}"
+            vi_tri = f"{vi_tri_a} → {vi_tri_b}"
 
         return ChangeItem(
             change_type=ChangeType.REORDERED, mo_ta=mo_ta, vi_tri=vi_tri,
@@ -127,10 +131,11 @@ class Comparator:
     # ── Added / Deleted ───────────────────────────────────────────────
 
     def _make_deleted(self, chunk: Chunk) -> ChangeItem:
+        vi_tri = self._resolve_vi_tri("", chunk, chunk)
         return ChangeItem(
             change_type=ChangeType.DELETED,
-            mo_ta=f"Điều khoản bị xóa: {chunk.metadata.heading_path}",
-            vi_tri=chunk.metadata.heading_path,
+            mo_ta=f"Điều khoản bị xóa: {vi_tri}",
+            vi_tri=vi_tri,
             citation_a=Citation(source=DocSource.A, text=chunk.text[:300].strip(),
                                 heading_path=chunk.metadata.heading_path,
                                 chunk_index=chunk.metadata.chunk_index),
@@ -138,10 +143,11 @@ class Comparator:
         )
 
     def _make_added(self, chunk: Chunk) -> ChangeItem:
+        vi_tri = self._resolve_vi_tri("", chunk, chunk)
         return ChangeItem(
             change_type=ChangeType.ADDED,
-            mo_ta=f"Điều khoản thêm mới: {chunk.metadata.heading_path}",
-            vi_tri=chunk.metadata.heading_path,
+            mo_ta=f"Điều khoản thêm mới: {vi_tri}",
+            vi_tri=vi_tri,
             citation_a=None,
             citation_b=Citation(source=DocSource.B, text=chunk.text[:300].strip(),
                                 heading_path=chunk.metadata.heading_path,
@@ -224,22 +230,47 @@ class Comparator:
 
     # ── vi_tri resolution ─────────────────────────────────────────────
 
+    @staticmethod
+    def _extract_dieu_number(dieu_raw: str) -> str:
+        """Trích 'Điều X' từ chuỗi dieu metadata, bỏ phần tiêu đề phía sau.
+        Ví dụ: 'Điều 3. Thời hạn thuê' → 'Điều 3'
+        """
+        if not dieu_raw:
+            return ""
+        m = re.match(r"((?:Điều|Dieu|Phụ lục|Phu luc)\s+[\d\w]+)", dieu_raw, re.IGNORECASE)
+        return m.group(1).strip() if m else dieu_raw.strip()
+
     def _resolve_vi_tri(self, llm_vi_tri: str, ca: Chunk, cb: Chunk) -> str:
-        chunk_vi_tri = ca.metadata.heading_path or cb.metadata.heading_path or ""
-        if not llm_vi_tri:
-            return chunk_vi_tri
+        """
+        Luôn build vi_tri từ metadata chunk (đáng tin cậy) thay vì dùng
+        text tự do từ LLM.
+        Format chuẩn: "Điều X > Khoản Y > Điểm Z"
+        """
+        meta = ca.metadata if ca else cb.metadata
+        if not meta:
+            return llm_vi_tri or ""
 
-        # Trích số điều từ heading_path thực
-        m_chunk = re.search(r"(\d+)", chunk_vi_tri)
-        if not m_chunk:
-            return llm_vi_tri or chunk_vi_tri
+        parts = []
 
-        so_dieu = m_chunk.group(1)
-        # Nếu số điều đó xuất hiện trong llm_vi_tri → LLM nói đúng vị trí
-        if re.search(r"\b" + re.escape(so_dieu) + r"\b", llm_vi_tri):
-            return llm_vi_tri
-        # Không khớp → dùng heading_path thật
-        return chunk_vi_tri
+        # Trích "Điều X" (bỏ tiêu đề dài phía sau)
+        dieu_clean = self._extract_dieu_number(meta.dieu or "")
+        if dieu_clean:
+            parts.append(dieu_clean)
+
+        # Thêm "Khoản Y" nếu có
+        if meta.khoan:
+            khoan_num = meta.khoan.rstrip(".").rstrip(")")
+            parts.append(f"Khoản {khoan_num}")
+
+        # Thêm "Điểm Z" nếu có
+        if meta.diem:
+            parts.append(f"Điểm {meta.diem}")
+
+        if parts:
+            return " > ".join(parts)
+
+        # Fallback: heading_path gốc hoặc LLM
+        return ca.metadata.heading_path or cb.metadata.heading_path or llm_vi_tri or ""
 
     # ── Severity logic ────────────────────────────────────────────────
 
@@ -341,10 +372,11 @@ class Comparator:
     ) -> ChangeItem:
         has_critical     = self._critical_legal_signal_changed(ca.text, cb.text)
         muc_do, ly_giai  = self._infer_severity(ca.text, cb.text, sim_score)
+        vi_tri = self._resolve_vi_tri("", ca, cb)
         return ChangeItem(
             change_type=ChangeType.MODIFIED,
-            mo_ta=f"Nội dung thay đổi tại: {context}" if context else "Nội dung thay đổi",
-            vi_tri=context or ca.metadata.heading_path or cb.metadata.heading_path,
+            mo_ta=f"Nội dung thay đổi tại: {vi_tri}" if vi_tri else "Nội dung thay đổi",
+            vi_tri=vi_tri,
             citation_a=Citation(source=DocSource.A, text=ca.text[:220].strip(),
                                 heading_path=ca.metadata.heading_path,
                                 chunk_index=ca.metadata.chunk_index),

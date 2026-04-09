@@ -187,7 +187,7 @@ def print_detail(run_id: str):
     if all_missed:
         from collections import Counter
         top_missed = Counter(all_missed).most_common(5)
-        print("  ⚠️  Thay đổi bị bỏ sót nhiều nhất (FN):")
+        print("  Thay đổi bị bỏ sót nhiều nhất (FN):")
         for item, count in top_missed:
             print(f"     {count}x  {item}")
         print()

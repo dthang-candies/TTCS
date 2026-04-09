@@ -16,13 +16,11 @@ Hệ thống nhận 2 phiên bản hợp đồng (DOCX/PDF), tự động phát 
     - [1. Clone repo](#1-clone-repo)
     - [2. Cài UI (local)](#2-cài-ui-local)
     - [3. Cài Backend (Google Colab)](#3-cài-backend-google-colab)
-  - [Chạy Demo (không cần backend)](#chạy-demo-không-cần-backend)
   - [Chạy đầy đủ (có backend)](#chạy-đầy-đủ-có-backend)
   - [Đánh giá mô hình](#đánh-giá-mô-hình)
     - [Chuẩn bị ground truth](#chuẩn-bị-ground-truth)
     - [Chạy đánh giá](#chạy-đánh-giá)
     - [Ví dụ kết quả](#ví-dụ-kết-quả)
-  - [Biến môi trường](#biến-môi-trường)
   - [Tech Stack](#tech-stack)
 
 ---
@@ -142,62 +140,14 @@ cp .env.example .env
 ```bash
 cd ui
 python3 -m venv venv
-source venv/bin/activate        # Windows: venv\Scripts\activate
+source venv/bin/activate        
 pip install -r requirements.txt
 ```
 
 ### 3. Cài Backend (Google Colab)
 
-Chạy lần lượt các cell sau trên Colab:
+Chạy file notebook/TTCS.ipynd
 
-```python
-# Cell 1 — Upload backend
-from google.colab import files
-uploaded = files.upload()       # chọn file backend.zip
-
-import zipfile
-with zipfile.ZipFile("backend.zip") as z:
-    z.extractall("/content/backend")
-
-# Cell 2 — Cài dependencies
-%cd /content/backend
-!pip install -r requirements.txt
-
-# Cell 3 — Cài Ollama + pull model (~4.5 GB)
-!curl -fsSL https://ollama.com/install.sh | sh
-!ollama serve &
-import time; time.sleep(3)
-!ollama pull qwen2.5:7b
-
-# Cell 4 — Chạy FastAPI + expose qua ngrok
-!pip install pyngrok
-from pyngrok import ngrok
-import subprocess, time
-
-subprocess.Popen(["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"])
-time.sleep(3)
-
-tunnel = ngrok.connect(8000)
-print("✅ BACKEND_URL =", tunnel.public_url)
-# Dán URL này vào .env → BACKEND_URL=https://xxxx.ngrok-free.app
-```
-
----
-
-## Chạy Demo (không cần backend)
-
-```bash
-# .env
-DEMO_MODE=true
-
-# Chạy
-cd ui
-source venv/bin/activate
-streamlit run app.py
-# Mở: http://localhost:8501
-```
-
-Demo hiển thị 8 thay đổi mẫu với đầy đủ loại: THÊM / XÓA / SỬA / KHÔNG ĐỔI NỘI DUNG.
 
 ---
 
@@ -214,9 +164,6 @@ cd ui
 source venv/bin/activate
 streamlit run app.py
 ```
-
-> **Lưu ý:** Mỗi lần Colab restart, ngrok sinh URL mới.
-> Chỉ cần cập nhật `BACKEND_URL` trong `.env` rồi restart Streamlit.
 
 ---
 
@@ -260,34 +207,14 @@ python evaluation/compare.py
 
 ### Ví dụ kết quả
 
-```
-Run ID                 Note         Model          top_k   thr  P      R      F1
-run_20240301_143022    baseline     qwen2.5:7b     5    0.85  0.812  0.743  0.776
-run_20240301_160512    topk_8       qwen2.5:7b     8    0.85  0.834  0.771  0.801
-run_20240302_090000    thr_075      qwen2.5:7b     5    0.75  0.798  0.810  0.804
-```
+| Run ID| Note| Model |  top_k  | thr  |P     | R    |  F1| 
+| --- |---|---|---|---|---|---|---| 
+run_20240301_143022  |baseline     |qwen2.5:7b |   5  | 0.85|  0.812| 0.743| 0.776
+run_20240301_160512  |topk_8  |    qwen2.5:7b   | 8   | 0.85 | 0.834 | 0.771 | 0.801
+run_20240302_090000   | thr_075  |   qwen2.5:7b |   5 |  0.75 | 0.798 | 0.810 | 0.804
 
 ---
 
-##  Biến môi trường
-
-```bash
-cp .env.example .env
-```
-
-| Biến | Mặc định | Mô tả |
-|---|---|---|
-| `DEMO_MODE` | `true` | `true` = dữ liệu giả, `false` = backend thật |
-| `BACKEND_URL` | `http://localhost:8000` | URL backend (ngrok khi dùng Colab) |
-| `API_TIMEOUT` | `180` | Timeout gọi API (giây) |
-| `API_INGEST_TIMEOUT` | `300` | Timeout upload + embed (giây) |
-| `LLM_MODEL_NAME` | `qwen2.5:7b` | Tên model Ollama |
-| `LLM_TIMEOUT` | `120` | Timeout gọi LLM (giây) |
-| `EMBEDDING_MODEL` | `BAAI/bge-m3` | Model embedding |
-| `CHUNK_MAX` | `800` | Kích thước chunk tối đa (ký tự) |
-| `SIM_THRESHOLD` | `0.85` | Ngưỡng cosine similarity để ghép cặp |
-
----
 
 ## Tech Stack
 

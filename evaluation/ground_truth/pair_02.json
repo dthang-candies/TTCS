@@ -1,0 +1,10 @@
+{
+  "pair_id": "pair_02",
+  "file_a": "1-gốc.pdf",
+  "file_b": "1-sửa.pdf",
+  "changes": [
+    { "change_type": "XOA", "vi_tri": "Điều 4 > Khoản 8" },
+    { "change_type": "XOA", "vi_tri": "Điều 4 > Khoản 2 > Điểm h" },
+    { "change_type": "SUA", "vi_tri": "Điều 41 > Khoản 4" }
+  ]
+}

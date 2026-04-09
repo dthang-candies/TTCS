@@ -103,25 +103,44 @@ class Reporter:
     @staticmethod
     def _dedup(changes: List[ChangeItem]) -> List[ChangeItem]:
         """
-        Fix 2: Dedup theo noi dung trich dan thuc su.
-        Truoc day dung chunk_index -> bi lech khi cung Dieu cat nhieu chunk.
-        Bay gio dung (text_a[:80], text_b[:80]) -> bat duoc trung lap thuc su.
+        Dedup mạnh: gộp các thay đổi cùng (vi_tri, change_type) thành 1.
+        Giữ lại bản có muc_do cao nhất và mo_ta dài nhất (chất lượng tốt hơn).
         """
-        seen:   set              = set()
-        result: List[ChangeItem] = []
+        _muc_do_score = {"cao": 3, "trung binh": 2, "thap": 1}
+
+        # Bước 1: Gộp theo (vi_tri, change_type) — giữ bản tốt nhất
+        best: dict[tuple, ChangeItem] = {}
         for c in changes:
-            # Key: noi dung citation thuc su (cat 80 ky tu dau)
+            key = (c.vi_tri.strip(), c.change_type)
+            if key not in best:
+                best[key] = c
+            else:
+                old = best[key]
+                old_score = _muc_do_score.get(old.muc_do, 0)
+                new_score = _muc_do_score.get(c.muc_do, 0)
+                # Ưu tiên: muc_do cao hơn, nếu bằng thì mo_ta dài hơn
+                if new_score > old_score or (
+                    new_score == old_score and len(c.mo_ta) > len(old.mo_ta)
+                ):
+                    best[key] = c
+
+        result = list(best.values())
+
+        # Bước 2: Dedup thêm theo nội dung citation (bắt trùng lặp text)
+        seen: set = set()
+        final: List[ChangeItem] = []
+        for c in result:
             text_a = (c.citation_a.text[:80].strip() if c.citation_a else "")
             text_b = (c.citation_b.text[:80].strip() if c.citation_b else "")
-            # Them ca mo_ta de phan biet 2 thay doi khac nhau trong cung cap chunk
-            key = (c.change_type, text_a, text_b, c.mo_ta[:60].strip())
-            if key not in seen:
-                seen.add(key)
-                result.append(c)
-        removed = len(changes) - len(result)
+            cite_key = (c.change_type, text_a, text_b)
+            if cite_key not in seen:
+                seen.add(cite_key)
+                final.append(c)
+
+        removed = len(changes) - len(final)
         if removed:
-            logger.info(f"Dedup: loai {removed} ban trung ({len(changes)} -> {len(result)})")
-        return result
+            logger.info(f"Dedup: loai {removed} ban trung ({len(changes)} -> {len(final)})")
+        return final
 
     @staticmethod
     def _fallback_summary(
