@@ -1,0 +1,16 @@
+{
+  "pair_id": "pair_10",
+  "file_a": "VB4-Gốc.docx",
+  "file_b": "VB4-Chỉnh sửa.docx",
+  "changes": [
+    { "change_type": "SUA", "vi_tri": "Điều 1 > Khoản 4" },
+    { "change_type": "SUA", "vi_tri": "Điều 1 > Khoản 5" },
+    { "change_type": "SUA", "vi_tri": "Điều 3 > Khoản 2" },
+    { "change_type": "XOA", "vi_tri": "Điều 4 > Khoản 3" },
+    { "change_type": "SUA", "vi_tri": "Điều 6 > Khoản 2 > Điểm 2" },
+    { "change_type": "THEM", "vi_tri": "Điều 13 > Khoản 2" },
+    { "change_type": "DOI_VI_TRI", "vi_tri": "Điều 14 > Khoản 1" },
+    { "change_type": "DOI_VI_TRI", "vi_tri": "Điều 14 > Khoản 3" },
+    { "change_type": "SUA", "vi_tri": "Điều 22 > Khoản 3" }
+  ]
+}

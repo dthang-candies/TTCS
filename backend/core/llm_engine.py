@@ -31,7 +31,7 @@ class LLMEngine:
         "• KHÔNG viết giải thích, KHÔNG dùng markdown\n"
         "• Chỉ trả về JSON array hợp lệ, bắt đầu bằng '[' và kết thúc bằng ']'\n\n"
         "Schema mỗi phần tử:\n"
-        '{"change_type":"SUA|THEM|XOA|KHONG_DOI","mo_ta":"...","vi_tri":"Dieu X Khoan Y",'
+        '{"change_type":"SUA|THEM|XOA|KHONG_DOI|DOI VI TRI","mo_ta":"...","vi_tri":"Điều X Khoản Y Điểm Z",'
         '"trich_dan_a":"nguyen van trong A","trich_dan_b":"nguyen van trong B","muc_do":"cao|trung binh|thap"}'
     )
 
@@ -78,7 +78,7 @@ class LLMEngine:
         loc = f"Vị trí: {context}\n\n" if context else ""
 
         # FIX: giới hạn độ dài đoạn gửi vào LLM (tránh vượt num_ctx)
-        MAX_CHUNK_CHARS = 1500
+        MAX_CHUNK_CHARS = 2000
         a_text = text_a[:MAX_CHUNK_CHARS].strip()
         b_text = text_b[:MAX_CHUNK_CHARS].strip()
 
@@ -154,6 +154,7 @@ class LLMEngine:
             "XOA": "XOA", "DELETED": "XOA", "XÓA": "XOA",
             "KHONG_DOI": "KHONG DOI NOI DUNG",
             "KHONG DOI NOI DUNG": "KHONG DOI NOI DUNG",
+            "DOI_VI_TRI" : "DOI VI TRI", "DOI VI TRI": "REORDER",
             "UNCHANGED": "KHONG DOI NOI DUNG",
         }
         d["change_type"] = _ct_map.get(raw_ct, "SUA")

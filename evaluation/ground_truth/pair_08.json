@@ -1,0 +1,15 @@
+{
+  "pair_id": "pair_08",
+  "file_a": "VB2-Gốc.pdf",
+  "file_b": "VB2-Chỉnh sửa.pdf",
+  "changes": [
+    { "change_type": "XOA", "vi_tri": "Điều 1" },
+    { "change_type": "SUA", "vi_tri": "Điều 3 > khoản 6" },
+    { "change_type": "XOA", "vi_tri": "Điều 4 > khoản 4" },
+    { "change_type": "XOA", "vi_tri": "Điều 7 > khoản 2 > điểm e" },
+    { "change_type": "XOA", "vi_tri": "Điều 7 > khoản 2 > điểm g" },
+    { "change_type": "XOA", "vi_tri": "Điều 7 > khoản 3" },
+    { "change_type": "THEM", "vi_tri": "Điều 18" },
+    { "change_type": "THEM", "vi_tri": "Điều 19" }
+  ]
+}

@@ -1,17 +1,3 @@
-"""
-evaluation/run_eval.py
-Chạy đánh giá độ chính xác trên toàn bộ cặp tài liệu có ground truth.
-
-Cách dùng:
-  # Chạy với config mặc định
-  python evaluation/run_eval.py
-
-  # Tuỳ chỉnh tham số
-  python evaluation/run_eval.py --top_k 8 --threshold 0.75 --note "topk_8"
-
-  # Chỉ chạy 1 cặp cụ thể để debug
-  python evaluation/run_eval.py --pair pair_01
-"""
 
 import argparse
 import json

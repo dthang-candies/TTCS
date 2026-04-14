@@ -1,0 +1,13 @@
+{
+  "pair_id": "pair_09",
+  "file_a": "VB3-Gốc.docx",
+  "file_b": "VB3-Chỉnh sửa.docx",
+  "changes": [
+    { "change_type": "SUA", "vi_tri": "Điều 1" },
+    { "change_type": "XOA", "vi_tri": "Điều 3 > khoản 11" },
+    { "change_type": "XOA", "vi_tri": "Điều 4 > khoản 4" },
+    { "change_type": "SUA", "vi_tri": "Điều 6 > khoản 1" },
+    { "change_type": "THEM", "vi_tri": "Điều 6 > khoản 1 > điểm đ" },
+    { "change_type": "SUA", "vi_tri": "Điều 13 > khoản 5" }
+  ]
+}
