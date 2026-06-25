@@ -1,4 +1,4 @@
-# backend/requirements.txt
+cd ..# backend/requirements.txt
 # Cài: pip install -r requirements.txt
 
 # API
