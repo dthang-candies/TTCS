@@ -1,0 +1,39 @@
+{
+  "pair_id": "pair_05",
+  "file_a": "3-gốc.docx",
+  "file_b": "3-sửa.docx",
+  "changes": [
+    {
+      "change_type": "THEM",
+      "vi_tri": "Điều 4 > Khoản 13"
+    },
+    {
+      "change_type": "XOA",
+      "vi_tri": "Điều 19 > Khoản 9 và 8"
+    },
+    {
+      "change_type": "THEM",
+      "vi_tri": "Điều 23 > Khoản 2 > Điểm b"
+    },
+    {
+      "change_type": "SUA",
+      "vi_tri": "Điều 25"
+    },
+    {
+      "change_type": "XOA",
+      "vi_tri": "Điều 32 > Khoản 3"
+    },
+    {
+      "change_type": "SUA",
+      "vi_tri": "Điều 37 > Khoản 2"
+    },
+    {
+      "change_type": "THEM",
+      "vi_tri": "Điều 51 > Khoản 6"
+    },
+    {
+      "change_type": "SUA",
+      "vi_tri": "Điều 54"
+    }
+  ]
+}

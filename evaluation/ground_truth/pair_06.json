@@ -1,0 +1,51 @@
+{
+  "pair_id": "pair_06",
+  "file_a": "4-gốc.pdf",
+  "file_b": "4-sửa.pdf",
+  "changes": [
+    {
+      "change_type": "THEM",
+      "vi_tri": "Điều 4 > Khoản 21"
+    },
+    {
+      "change_type": "XOA",
+      "vi_tri": "Điều 15 > Khoản 1 > Điểm g"
+    },
+    {
+      "change_type": "XOA",
+      "vi_tri": "Điều 15 > Khoản 1 > Điểm h"
+    },
+    {
+      "change_type": "XOA",
+      "vi_tri": "Điều 15 > Khoản 1 > Điểm i"
+    },
+    {
+      "change_type": "XOA",
+      "vi_tri": "Điều 15 > Khoản 1 > Điểm k"
+    },
+    {
+      "change_type": "XOA",
+      "vi_tri": "Điều 15 > Khoản 1 > Điểm e"
+    },
+    {
+      "change_type": "SUA",
+      "vi_tri": "Điều 24 > Khoản 3"
+    },
+    {
+      "change_type": "SUA",
+      "vi_tri": "Điều 25 > Khoản 1"
+    },
+    {
+      "change_type": "XOA",
+      "vi_tri": "Điều 32 > Khoản 2"
+    },
+    {
+      "change_type": "THEM",
+      "vi_tri": "Điều 37 > Khoản 1 > Điểm g"
+    },
+    {
+      "change_type": "SUA",
+      "vi_tri": "Điều 47"
+    }
+  ]
+}
