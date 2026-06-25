@@ -14,6 +14,7 @@ Chay local  : uvicorn main:app --reload --port 8000
 Chay Colab  : !uvicorn main:app --host 0.0.0.0 --port 8000 &
 """
 from __future__ import annotations
+from pyexpat import model
 import sys, os, logging, time, uuid, shutil
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -168,6 +169,7 @@ async def ingest(
 
     db.index_chunks(chunks_a, sid)
     db.index_chunks(chunks_b, sid)
+
 
     return IngestResponse(
         session_id=sid,
