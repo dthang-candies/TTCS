@@ -11,13 +11,32 @@ logger = logging.getLogger(__name__)
 
 RE_DIEU    = re.compile(r"^(Dieu\s+\d+[\.\:\s].{0,100})$",   re.IGNORECASE)
 RE_DIEU_VN = re.compile(r"^(\u0110i\u1ec1u\s+\d+[\.\:\s].{0,100})$", re.IGNORECASE)
-RE_KHOAN   = re.compile(r"^(\d+[\.\)]\s+\S.{0,100})$")
 RE_DIEM    = re.compile(r"^([a-z\u0111\u0110]\)\s+.{0,100})$")
 RE_PHU_LUC = re.compile(r"^(Ph\u1ee5\s*l\u1ee5c\s+[\dA-Z]+.{0,80})$", re.IGNORECASE)
 
 
 def _is_dieu(s: str) -> bool:
     return bool(RE_DIEU.match(s) or RE_DIEU_VN.match(s))
+
+
+def _parse_khoan_line(s: str) -> tuple[str, str] | None:
+    """Nhận dòng Khoản: '9. Nội dung...' hoặc '9.' đứng riêng (DOCX tách số và thân)."""
+    s = s.strip()
+    if not s:
+        return None
+    m = re.match(r"^(\d+[\.\)])(?:\s+(.*))?$", s)
+    if not m:
+        return None
+    return m.group(1), (m.group(2) or "").strip()
+
+
+def _last_khoan_marker(lines: List[str]) -> Optional[str]:
+    last: Optional[str] = None
+    for line in lines:
+        parsed = _parse_khoan_line(line)
+        if parsed:
+            last = parsed[0]
+    return last
 
 
 class Chunker:
@@ -28,12 +47,19 @@ class Chunker:
         self.overlap  = cfg.CHUNK_OVL
         self.min_size = cfg.CHUNK_MIN
 
+    @staticmethod
+    def _join_len(lines: List[str]) -> int:
+        n = len(lines)
+        if n == 0:
+            return 0
+        return sum(len(x) for x in lines) + n - 1
+
     def chunk(
         self, doc: ParsedDoc, doc_id: str,
         source: DocSource, session_id: str,
     ) -> List[Chunk]:
         lines    = [p.text for p in doc.paragraphs]
-        page_map = {i: p.page for i, p in enumerate(doc.paragraphs)}
+        page_map = [p.page for p in doc.paragraphs]
 
         chunks = self._structural(lines, page_map, doc_id, source, session_id)
         if len(chunks) < 3:
@@ -45,7 +71,7 @@ class Chunker:
         return chunks
 
     def _structural(
-        self, lines: List[str], page_map: dict,
+        self, lines: List[str], page_map: List[int],
         doc_id: str, source: DocSource, session_id: str,
     ) -> List[Chunk]:
         chunks: List[Chunk] = []
@@ -77,7 +103,7 @@ class Chunker:
 
         for li, line in enumerate(lines):
             s    = line.strip()
-            page = page_map.get(li, 0)
+            page = page_map[li] if li < len(page_map) else 0
             if not s:
                 continue
 
@@ -86,15 +112,15 @@ class Chunker:
                 cur_dieu  = s; cur_khoan = None; cur_diem = None
                 cur_lines = [s]; cur_page = page
 
-            elif RE_KHOAN.match(s) and cur_dieu:
-                if len("\n".join(cur_lines)) > self.overlap:
+            elif cur_dieu and (parsed := _parse_khoan_line(s)):
+                marker, _rest = parsed
+                if self._join_len(cur_lines) > self.overlap:
                     flush()
-                    cur_khoan = s.split()[0]; cur_diem = None
-                    # Fix: giu lai tieu de Dieu hien tai de chunk con co context
+                    cur_khoan = marker; cur_diem = None
                     cur_lines = ([cur_dieu] if cur_dieu else []) + [s]
                     cur_page  = page
                 else:
-                    cur_khoan = s.split()[0]
+                    cur_khoan = marker; cur_diem = None
                     cur_lines.append(s)
 
             elif RE_DIEM.match(s) and cur_khoan:
@@ -107,7 +133,7 @@ class Chunker:
                     cur_page = page
 
             # Force flush neu chunk qua lon
-            if len("\n".join(cur_lines)) > self.max_size:
+            if self._join_len(cur_lines) > self.max_size:
                 flush()
                 # Fix: luon bat dau chunk moi bang tieu de Dieu
                 # Dam bao chunk_index va dieu/khoan duoc giu lai dung
@@ -117,6 +143,10 @@ class Chunker:
                 # Giu 3 dong cuoi lam overlap context
                 tail = cur_lines[-3:] if len(cur_lines) > 3 else cur_lines
                 cur_lines = header + tail
+                synced = _last_khoan_marker(tail)
+                if synced:
+                    cur_khoan = synced
+                    cur_diem = None
 
         flush()
         return chunks

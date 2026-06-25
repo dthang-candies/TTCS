@@ -79,18 +79,26 @@ class _Normalizer:
         r"\bKHOẢN\b": "Khoản", r"\bKhoan\b": "Khoản",
         r"\bĐIỂM\b": "Điểm", r"\bPHỤ LỤC\b": "Phụ lục",
     }
+    _TRANSLATE = str.maketrans({
+        "\u201c": '"', "\u201d": '"',
+        "\u2018": "'", "\u2019": "'",
+        "\u2013": "-", "\u2014": "-",
+    })
+
+    def __init__(self):
+        self._ocr_patterns = [
+            (re.compile(pat), rep) for pat, rep in self._OCR.items()
+        ]
 
     def clean(self, text: str) -> str:
         text = unicodedata.normalize("NFC", text)
         text = re.sub(r"-\s*\d+\s*-", "", text)             # số trang
         text = re.sub(r"[Tt]rang\s+\d+\s*/\s*\d+", "", text)
-        for pat, rep in self._OCR.items():
-            text = re.sub(pat, rep, text)
+        for pat, rep in self._ocr_patterns:
+            text = pat.sub(rep, text)
         text = re.sub(r"\t+", " ", text)
         text = re.sub(r" {2,}", " ", text)
-        text = text.replace("\u201c", '"').replace("\u201d", '"')
-        text = text.replace("\u2018", "'").replace("\u2019", "'")
-        text = text.replace("\u2013", "-").replace("\u2014", "-")
+        text = text.translate(self._TRANSLATE)
         return text.strip()
 
 

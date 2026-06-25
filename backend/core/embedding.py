@@ -5,7 +5,7 @@ BGE-M3 singleton — lazy load, dùng lại suốt vòng đời app.
 
 from __future__ import annotations
 import sys, os, logging
-from typing import List
+from typing import List, Union
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -25,6 +25,7 @@ class BGEM3Embedder:
     """
     Wrapper FlagEmbedding BGEM3FlagModel.
     encode_dense() trả về dense vector 1024 chiều.
+    Tự chọn CUDA khi khả dụng (config.EMBEDDING_DEVICE).
     """
 
     def __init__(self):
@@ -33,17 +34,23 @@ class BGEM3Embedder:
         self._fp16       = cfg.EMBEDDING_FP16
         self._batch      = cfg.EMBEDDING_BATCH
         self._maxlen     = cfg.EMBEDDING_MAXLEN
+        self._device     = cfg.EMBEDDING_DEVICE
         self._model      = None
         self._load()
 
     def _load(self):
         try:
             from FlagEmbedding import BGEM3FlagModel
-            logger.info(f"Loading {self._model_name} ...")
+            logger.info(f"Loading {self._model_name} on {self._device} ...")
             self._model = BGEM3FlagModel(
-                self._model_name, use_fp16=self._fp16
+                self._model_name,
+                use_fp16=self._fp16,
+                device=self._device,
             )
-            logger.info("BGE-M3 sẵn sàng")
+            actual = str(getattr(self._model, "device", self._device))
+            logger.info(
+                f"BGE-M3 sẵn sàng | device={actual} | batch={self._batch} | fp16={self._fp16}"
+            )
         except ImportError:
             raise RuntimeError("pip install FlagEmbedding")
         except Exception as e:
@@ -61,12 +68,23 @@ class BGEM3Embedder:
             return_sparse=False,
             return_colbert_vecs=False,
         )
-        return out["dense_vecs"].tolist()
+        vecs = out["dense_vecs"]
+        if isinstance(vecs, np.ndarray):
+            return vecs.tolist()
+        return vecs
 
-    def similarity(self, a: List[float], b: List[float]) -> float:
-        va, vb = np.array(a), np.array(b)
+    def similarity(
+        self,
+        a: Union[List[float], np.ndarray],
+        b: Union[List[float], np.ndarray],
+    ) -> float:
+        va, vb = np.asarray(a, dtype=np.float32), np.asarray(b, dtype=np.float32)
         d = np.linalg.norm(va) * np.linalg.norm(vb)
         return float(np.dot(va, vb) / d) if d > 0 else 0.0
+
+    @property
+    def device(self) -> str:
+        return self._device
 
     @property
     def is_ready(self) -> bool:

@@ -130,9 +130,13 @@ class Matcher:
                 continue
             if score < threshold:
                 break
+            ca, cb = ca_list[ia], cb_list[ib]
+            # Cùng Điều: không ghép khác Khoản/Điểm (tránh K5 A → K6 B thay vì XÓA K5)
+            if strategy == "same_dieu" and not self._same_khoan_diem(ca, cb):
+                continue
             pairs.append(MatchedPair(
-                chunk_a=ca_list[ia],
-                chunk_b=cb_list[ib],
+                chunk_a=ca,
+                chunk_b=cb,
                 sim_score=round(max(score, semantic), 4),
                 is_matched=True,
                 match_strategy=strategy,
@@ -147,10 +151,33 @@ class Matcher:
         )
 
     @staticmethod
+    def _dieu_group_key(dieu_raw: str) -> str:
+        """Nhóm theo số Điều, không phụ thuộc tiêu đề dài (tránh lệch key Điều 42)."""
+        if not dieu_raw:
+            return "__no_dieu__"
+        m = re.match(
+            r"((?:Điều|Dieu|Phụ lục|Phu luc)\s+[\d\w]+)",
+            dieu_raw.strip(), re.IGNORECASE,
+        )
+        return m.group(1).strip() if m else dieu_raw.strip()
+
+    @staticmethod
+    def _same_khoan_diem(ca: Chunk, cb: Chunk) -> bool:
+        ka = (ca.metadata.khoan or "").strip().rstrip(".")
+        kb = (cb.metadata.khoan or "").strip().rstrip(".")
+        if ka and kb and ka != kb:
+            return False
+        da = (ca.metadata.diem or "").strip().lower()
+        db = (cb.metadata.diem or "").strip().lower()
+        if da and db and da != db:
+            return False
+        return True
+
+    @staticmethod
     def _group_by_dieu(chunks: List[Chunk]) -> dict[str, List[Chunk]]:
         groups: dict[str, List[Chunk]] = {}
         for c in chunks:
-            key = c.metadata.dieu or "__no_dieu__"
+            key = Matcher._dieu_group_key(c.metadata.dieu or "")
             groups.setdefault(key, []).append(c)
         return groups
 
@@ -168,8 +195,16 @@ class Matcher:
         matched_b: Set[int] = set()
 
         candidates: list[tuple[float, int, Tuple[int, ...], Chunk]] = []
+        vecs_a = self.embedder.encode_dense([c.text for c in chunks_a]) if chunks_a else []
+        vecs_b = self.embedder.encode_dense([c.text for c in chunks_b]) if chunks_b else []
+
         for ia, chunk_a in enumerate(chunks_a):
-            best = self._best_merged_candidate(chunk_a, chunks_b, top_k=top_k)
+            best = self._best_merged_candidate(
+                chunk_a, chunks_b,
+                source_vec=vecs_a[ia],
+                target_vecs=vecs_b,
+                top_k=top_k,
+            )
             if not best:
                 continue
             score, idxs, merged_chunk = best
@@ -200,19 +235,26 @@ class Matcher:
         self,
         source_chunk: Chunk,
         target_chunks: List[Chunk],
+        source_vec: List[float] | None = None,
+        target_vecs: List[List[float]] | None = None,
         top_k: int = 3,
     ) -> Tuple[float, Tuple[int, ...], Chunk] | None:
-        source_vec = self.embedder.encode_dense([source_chunk.text])[0]
+        source_vec = source_vec or self.embedder.encode_dense([source_chunk.text])[0]
+        if target_vecs is None:
+            target_vecs = self.embedder.encode_dense([c.text for c in target_chunks])
+
         singles: list[tuple[float, int]] = []
         for ib, chunk_b in enumerate(target_chunks):
-            vec_b = self.embedder.encode_dense([chunk_b.text])[0]
-            score = self._combined_score(source_chunk, chunk_b, source_vec=source_vec, target_vec=vec_b)
+            score = self._combined_score(
+                source_chunk, chunk_b,
+                source_vec=source_vec, target_vec=target_vecs[ib],
+            )
             singles.append((score, ib))
 
         singles.sort(reverse=True, key=lambda x: x[0])
         candidate_indices = sorted({ib for _, ib in singles[: max(top_k, self.max_merge_window + 1)]})
 
-        best: Tuple[float, Tuple[int, ...], Chunk] | None = None
+        merged_jobs: list[tuple[Tuple[int, ...], Chunk]] = []
         for start in candidate_indices:
             for window in range(2, self.max_merge_window + 1):
                 idxs = tuple(i for i in range(start, min(start + window, len(target_chunks))))
@@ -220,9 +262,19 @@ class Matcher:
                     continue
                 if idxs[-1] - idxs[0] + 1 != len(idxs):
                     continue
-                merged_chunk = self._merge_chunks([target_chunks[i] for i in idxs])
-                merged_vec = self.embedder.encode_dense([merged_chunk.text])[0]
-                score = self._combined_score(source_chunk, merged_chunk, source_vec=source_vec, target_vec=merged_vec)
+                merged_jobs.append((
+                    idxs,
+                    self._merge_chunks([target_chunks[i] for i in idxs]),
+                ))
+
+        best: Tuple[float, Tuple[int, ...], Chunk] | None = None
+        if merged_jobs:
+            merged_vecs = self.embedder.encode_dense([job[1].text for job in merged_jobs])
+            for (idxs, merged_chunk), merged_vec in zip(merged_jobs, merged_vecs):
+                score = self._combined_score(
+                    source_chunk, merged_chunk,
+                    source_vec=source_vec, target_vec=merged_vec,
+                )
                 if best is None or score > best[0]:
                     best = (score, idxs, merged_chunk)
 

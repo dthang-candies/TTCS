@@ -1,5 +1,5 @@
 from __future__ import annotations
-import sys, os, json, re, logging, requests
+import sys, os, json, re, logging, requests, time
 from typing import Optional, List
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -77,10 +77,10 @@ class LLMEngine:
 
         loc = f"Vị trí: {context}\n\n" if context else ""
 
-        # FIX: giới hạn độ dài đoạn gửi vào LLM (tránh vượt num_ctx)
-        MAX_CHUNK_CHARS = 2000
-        a_text = text_a[:MAX_CHUNK_CHARS].strip()
-        b_text = text_b[:MAX_CHUNK_CHARS].strip()
+        import config as cfg
+        max_chars = cfg.LLM_COMPARE_MAX_CHARS
+        a_text = text_a[:max_chars].strip()
+        b_text = text_b[:max_chars].strip()
 
         prompt = (
             f"{loc}"
@@ -93,13 +93,34 @@ class LLMEngine:
             "Trả về JSON array. Trả về [] nếu không có thay đổi."
         )
 
+        prompt_len = len(prompt) + len(self._SYS_COMPARE)
+        logger.info(
+            f"[PROFILE] llm_compare_start | context=[{context}] | "
+            f"prompt_chars={prompt_len} | a_chars={len(a_text)} | b_chars={len(b_text)}"
+        )
+
+        t0 = time.perf_counter()
         raw   = self._chat(prompt, self._SYS_COMPARE)
+        llm_sec = time.perf_counter() - t0
+
+        t1 = time.perf_counter()
         items = self._parse_list(raw)
+        parse_sec = time.perf_counter() - t1
         items = [self._fix_item(d) for d in items]
+
+        logger.info(
+            f"[PROFILE] llm_compare_done | context=[{context}] | "
+            f"llm_sec={llm_sec:.3f} | parse_sec={parse_sec:.3f} | "
+            f"parsed_items={len(items)} | raw_chars={len(raw)}"
+        )
 
         # FIX: fallback chỉ khi LLM trả [] mà 2 đoạn thực sự khác nhau
         if not items:
-            logger.warning(f"LLM trả [] tại [{context}] — dùng fallback SUA")
+            reason = self._diagnose_parse(raw)
+            logger.warning(
+                f"LLM trả [] tại [{context}] — dùng fallback SUA | "
+                f"parse_reason={reason} | raw_preview={raw[:300]!r}"
+            )
             items = [{
                 "change_type": "SUA",
                 "mo_ta": f"Nội dung thay đổi tại: {context}" if context else "Nội dung thay đổi",
@@ -175,7 +196,9 @@ class LLMEngine:
         if system:
             msgs.append({"role": "system", "content": system})
         msgs.append({"role": "user", "content": prompt})
+        total_chars = len(prompt) + (len(system) if system else 0)
         try:
+            t0 = time.perf_counter()
             r = requests.post(
                 f"{self._url}/api/chat",
                 json={
@@ -185,16 +208,27 @@ class LLMEngine:
                     "options": {
                         "temperature":    self._temp,
                         "num_predict":    self._maxt,
-                        "num_ctx":        self._num_ctx,      # FIX MỚI
-                        "repeat_penalty": self._repeat_pen,   # FIX MỚI
-                        "top_p":          self._top_p,        # FIX MỚI
+                        "num_ctx":        self._num_ctx,
+                        "repeat_penalty": self._repeat_pen,
+                        "top_p":          self._top_p,
                     },
                 },
                 timeout=self._tout,
             )
+            llm_sec = time.perf_counter() - t0
             r.raise_for_status()
-            return r.json()["message"]["content"].strip()
+            raw = r.json()["message"]["content"].strip()
+            logger.info(
+                f"[PROFILE] ollama_chat | llm_sec={llm_sec:.3f} | "
+                f"prompt_chars={total_chars} | response_chars={len(raw)} | "
+                f"timeout_cfg={self._tout}s | preview={raw[:300]!r}"
+            )
+            return raw
         except requests.Timeout:
+            logger.error(
+                f"[PROFILE] ollama_timeout | elapsed>={self._tout}s | "
+                f"prompt_chars={total_chars}"
+            )
             raise TimeoutError(f"LLM timeout sau {self._tout}s.")
         except requests.HTTPError as e:
             raise RuntimeError(f"Ollama HTTP error: {e}")
@@ -244,6 +278,22 @@ class LLMEngine:
             except json.JSONDecodeError:
                 continue
         return result
+
+    @staticmethod
+    def _diagnose_parse(raw: str) -> str:
+        """Chẩn đoán lý do parse trả rỗng — chỉ dùng cho log."""
+        if not raw or not raw.strip():
+            return "empty_response"
+        stripped = raw.strip()
+        if stripped == "[]":
+            return "literal_empty_array"
+        if "[" not in raw and "{" not in raw:
+            return "no_json_structure"
+        if "[" in raw and "change_type" not in raw:
+            return "json_without_change_type"
+        if "change_type" in raw:
+            return "json_parse_failed_or_invalid_schema"
+        return "unknown"
 
 
 def _safe_truncate(text: str, max_chars: int) -> str:

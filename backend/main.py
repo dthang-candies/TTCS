@@ -161,13 +161,28 @@ async def ingest(
     if db.session_exists(sid):
         db.delete_session(sid)
 
-    doc_a    = reader.read(path_a)
-    doc_b    = reader.read(path_b)
+    t_ingest = time.perf_counter()
+
+    t0 = time.perf_counter()
+    doc_a = reader.read(path_a)
+    doc_b = reader.read(path_b)
+    reader_sec = time.perf_counter() - t0
+
+    t0 = time.perf_counter()
     chunks_a = chunker.chunk(doc_a, doc_id=f"{sid}_A", source=DocSource.A, session_id=sid)
     chunks_b = chunker.chunk(doc_b, doc_id=f"{sid}_B", source=DocSource.B, session_id=sid)
+    chunk_sec = time.perf_counter() - t0
 
-    db.index_chunks(chunks_a, sid)
-    db.index_chunks(chunks_b, sid)
+    index_stats = db.index_session(sid, chunks_a, chunks_b)
+    total_sec = time.perf_counter() - t_ingest
+
+    logger.info(
+        f"Ingest benchmark | session={sid} | "
+        f"Reader={reader_sec:.3f}s | Chunking={chunk_sec:.3f}s | "
+        f"Embedding={index_stats['embed_sec']:.3f}s | Index={index_stats['index_sec']:.3f}s | "
+        f"Total={total_sec:.3f}s | chunks={len(chunks_a) + len(chunks_b)} | "
+        f"device={db.embedder.device}"
+    )
 
     return IngestResponse(
         session_id=sid,
@@ -191,17 +206,35 @@ async def compare(req: CompareRequest):
     t0 = time.time()
     logger.info(f"Compare | session={req.session_id} focus={req.focus_dieu}")
 
+    t_db = time.perf_counter()
     chunks_a = db.get_all(req.session_id, DocSource.A)
     chunks_b = db.get_all(req.session_id, DocSource.B)
+    db_sec = time.perf_counter() - t_db
 
-    pairs   = Matcher().match(chunks_a, chunks_b, focus_dieu=req.focus_dieu, top_k=req.top_k)
+    t_match = time.perf_counter()
+    pairs = Matcher().match(chunks_a, chunks_b, focus_dieu=req.focus_dieu, top_k=req.top_k)
+    matcher_sec = time.perf_counter() - t_match
+
+    t_comp = time.perf_counter()
     changes = Comparator().compare_all(pairs)
-    report  = Reporter().build(
+    comparator_sec = time.perf_counter() - t_comp
+
+    t_report = time.perf_counter()
+    report = Reporter().build(
         session_id  = req.session_id,
         changes     = changes,
         name_a      = f"Tai lieu A (session {req.session_id})",
         name_b      = f"Tai lieu B (session {req.session_id})",
         elapsed_sec = time.time() - t0,
+    )
+    reporter_sec = time.perf_counter() - t_report
+    total_sec = time.time() - t0
+
+    logger.info(
+        f"[PROFILE] compare_total | session={req.session_id} | "
+        f"db_sec={db_sec:.3f} | matcher_sec={matcher_sec:.3f} | "
+        f"comparator_sec={comparator_sec:.3f} | reporter_sec={reporter_sec:.3f} | "
+        f"total_compare_sec={total_sec:.3f} | pairs={len(pairs)}"
     )
 
     return CompareResponse(

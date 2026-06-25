@@ -110,8 +110,17 @@ class RealClient:
             )
             self._raise(r)
             return r.json()
+        except requests.ConnectionError as e:
+            raise APIError(
+                f"Mất kết nối backend trong lúc so sánh (WinError 10054 / Connection reset). "
+                f"Có thể compare vẫn đang chạy trên server (> {API_TIMEOUT}s). "
+                f"Kiểm tra backend.log và tăng API_TIMEOUT trong .env. Chi tiết: {e}"
+            )
         except requests.Timeout:
-            raise APIError(f"So sánh timeout ({API_TIMEOUT}s).")
+            raise APIError(
+                f"So sánh timeout sau {API_TIMEOUT}s. "
+                f"Compare gọi LLM tuần tự cho từng cặp — tăng API_TIMEOUT trong .env."
+            )
 
     def retrieve(self, session_id: str, query: str, source: str, top_k: int = 5) -> dict:
         r = requests.post(

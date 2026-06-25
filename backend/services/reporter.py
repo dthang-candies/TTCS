@@ -66,6 +66,7 @@ class Reporter:
         except Exception as e:
             logger.warning(f"LLM summarize loi: {e}")
             tom_tat = self._fallback_summary(added, deleted, modified, reordered)
+        logger.info(f"[PROFILE] reporter_summarize_done | changes={len(changes_dict)}")
 
         # Fix 3: Loc KHONG DOI ra khoi danh sach hien thi
         display_list = [c for c in changes if c.change_type != ChangeType.UNCHANGED]
@@ -150,5 +151,5 @@ class Reporter:
         if added:     parts.append(f"{added} dieu khoan them moi")
         if deleted:   parts.append(f"{deleted} dieu khoan bi xoa")
         if modified:  parts.append(f"{modified} dieu khoan sua doi")
-        if reordered: parts.append(f"{reordered} dieu khoan doi vi tri")
+        # if reordered: parts.append(f"{reordered} dieu khoan doi vi tri")
         return ("Tai lieu B so voi A: " + ", ".join(parts) + ".") if parts else "Khong co thay doi."

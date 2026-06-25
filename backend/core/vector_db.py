@@ -4,7 +4,7 @@ ChromaDB wrapper — 1 collection / session, filter theo source A|B.
 """
 
 from __future__ import annotations
-import sys, os, logging
+import sys, os, logging, time
 from typing import List, Dict
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -18,15 +18,13 @@ _client = None
 def _get_client():
     global _client
     if _client is None:
-        # Tắt telemetry trước khi import chromadb — biến môi trường được
-        # đọc ngay lúc module load, trước cả khi Settings object có hiệu lực.
-        os.environ.setdefault("ANONYMIZED_TELEMETRY", "False")
-        import chromadb, config as cfg
-        from chromadb.config import Settings
+        import chromadb
+        import config as cfg
+
         os.makedirs(cfg.CHROMA_DB_DIR, exist_ok=True)
         _client = chromadb.PersistentClient(
             path=cfg.CHROMA_DB_DIR,
-            settings=Settings(anonymized_telemetry=False),
+            settings=cfg.chroma_settings(),
         )
         logger.info(f"ChromaDB: {cfg.CHROMA_DB_DIR}")
     return _client
@@ -42,6 +40,37 @@ class VectorDB:
 
     # ── Index ──────────────────────────────────────────────────────────
 
+    def index_session(
+        self,
+        session_id: str,
+        chunks_a: List[Chunk],
+        chunks_b: List[Chunk],
+    ) -> Dict[str, float]:
+        """Embed + index cả A và B trong một lần encode (tối ưu ingest)."""
+        all_chunks = [*chunks_a, *chunks_b]
+        if not all_chunks:
+            return {"embed_sec": 0.0, "index_sec": 0.0, "count": 0}
+
+        col   = self._col(session_id)
+        texts = [c.text for c in all_chunks]
+        ids   = [f"{c.metadata.doc_id}_{c.metadata.chunk_index}" for c in all_chunks]
+        metas = [self._to_dict(c.metadata) for c in all_chunks]
+
+        t0 = time.perf_counter()
+        vecs = self.embedder.encode_dense(texts)
+        embed_sec = time.perf_counter() - t0
+
+        t1 = time.perf_counter()
+        self._upsert_batched(col, ids, vecs, texts, metas)
+        index_sec = time.perf_counter() - t1
+
+        logger.info(f"Indexed {len(all_chunks)} chunks → session={session_id}")
+        return {
+            "embed_sec": round(embed_sec, 3),
+            "index_sec": round(index_sec, 3),
+            "count":     len(all_chunks),
+        }
+
     def index_chunks(self, chunks: List[Chunk], session_id: str) -> int:
         if not chunks:
             return 0
@@ -50,7 +79,7 @@ class VectorDB:
         ids   = [f"{c.metadata.doc_id}_{c.metadata.chunk_index}" for c in chunks]
         vecs  = self.embedder.encode_dense(texts)
         metas = [self._to_dict(c.metadata) for c in chunks]
-        col.upsert(ids=ids, embeddings=vecs, documents=texts, metadatas=metas)
+        self._upsert_batched(col, ids, vecs, texts, metas)
         logger.info(f"Indexed {len(chunks)} chunks → session={session_id}")
         return len(chunks)
 
@@ -128,6 +157,21 @@ class VectorDB:
             name=f"session_{sid}",
             metadata={"hnsw:space": self.metric},
         )
+
+    def _upsert_batched(self, col, ids, vecs, texts, metas):
+        import config as cfg
+        batch = cfg.CHROMA_UPSERT_BATCH
+        n = len(ids)
+        if n <= batch:
+            col.upsert(ids=ids, embeddings=vecs, documents=texts, metadatas=metas)
+            return
+        for i in range(0, n, batch):
+            col.upsert(
+                ids=ids[i: i + batch],
+                embeddings=vecs[i: i + batch],
+                documents=texts[i: i + batch],
+                metadatas=metas[i: i + batch],
+            )
 
     def _count(self, col, source: DocSource) -> int:
         try:

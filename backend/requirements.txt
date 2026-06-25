@@ -16,6 +16,7 @@ numpy>=1.24.0
 
 # Vector DB
 chromadb==0.5.23
+posthog>=2.4.0,<6.0.0      # chromadb 0.5.x dùng API posthog cũ; >=6 gây lỗi telemetry
 
 # Document parsing
 python-docx==1.1.2
