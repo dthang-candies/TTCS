@@ -21,12 +21,13 @@ LOG_DIR       = str(BASE_DIR / "logs")
 LLM_BASE_URL       = os.getenv("LLM_BASE_URL",    "http://localhost:11434")
 LLM_MODEL_NAME     = os.getenv("LLM_MODEL_NAME",  "qwen2.5:7b")
 LLM_TEMPERATURE    = float(os.getenv("LLM_TEMPERATURE",    "0.05"))   
-LLM_MAX_TOKENS     = int(os.getenv("LLM_MAX_TOKENS",       "512"))
-LLM_COMPARE_MAX_CHARS = int(os.getenv("LLM_COMPARE_MAX_CHARS", "1000"))   
+LLM_MAX_TOKENS     = int(os.getenv("LLM_MAX_TOKENS",       "256"))
+LLM_COMPARE_MAX_CHARS = int(os.getenv("LLM_COMPARE_MAX_CHARS", "500"))   
 LLM_TIMEOUT        = int(os.getenv("LLM_TIMEOUT",          "600"))    
 LLM_NUM_CTX        = int(os.getenv("LLM_NUM_CTX",          "4096"))   
 LLM_REPEAT_PENALTY = float(os.getenv("LLM_REPEAT_PENALTY", "1.1"))    
 LLM_TOP_P          = float(os.getenv("LLM_TOP_P",          "0.9"))   
+LLM_KEEP_ALIVE     = os.getenv("LLM_KEEP_ALIVE",           "30m")
 
 # ── Embedding (BGE-M3) ────────────────────────────────────────────────
 EMBEDDING_MODEL  = os.getenv("EMBEDDING_MODEL", "BAAI/bge-m3")
@@ -84,6 +85,19 @@ MERGE_SIM_THRESHOLD = float(os.getenv("MERGE_SIM_THRESHOLD", "0.74"))
 MAX_MERGE_WINDOW    = int(os.getenv("MAX_MERGE_WINDOW",       "2"))
 CITATION_MIN_LEN    = int(os.getenv("CITATION_MIN_LEN",       "15"))  
 MAX_CHANGES         = int(os.getenv("MAX_CHANGES",             "50"))
+
+# Comparator fast/medium/LLM gates
+COMPARATOR_FAST_SIM       = float(os.getenv("COMPARATOR_FAST_SIM",       "0.97"))
+COMPARATOR_FAST_RATIO     = float(os.getenv("COMPARATOR_FAST_RATIO",     "0.97"))
+COMPARATOR_MEDIUM_SIM     = float(os.getenv("COMPARATOR_MEDIUM_SIM",     "0.90"))
+COMPARATOR_PREP_WORKERS   = int(os.getenv("COMPARATOR_PREP_WORKERS",     "4"))
+COMPARATOR_LLM_SIM_FLOOR  = float(os.getenv("COMPARATOR_LLM_SIM_FLOOR",  "0.90"))
+COMPARATOR_LLM_RATIO_FLOOR= float(os.getenv("COMPARATOR_LLM_RATIO_FLOOR","0.80"))
+COMPARATOR_LLM_RULE_SIM   = float(os.getenv("COMPARATOR_LLM_RULE_SIM",   "0.95"))
+COMPARATOR_LLM_RULE_RATIO = float(os.getenv("COMPARATOR_LLM_RULE_RATIO", "0.85"))
+COMPARATOR_LLM_LONG_CHARS = int(os.getenv("COMPARATOR_LLM_LONG_CHARS",   "1000"))
+COMPARATOR_LLM_LONG_RATIO = float(os.getenv("COMPARATOR_LLM_LONG_RATIO", "0.85"))
+LLM_BATCH_SIZE            = int(os.getenv("LLM_BATCH_SIZE",              "5"))
 
 # ── Severity thresholds ───────────────────────────────────────────────
 SEVERITY_LOW_SIM_FLOOR     = float(os.getenv("SEVERITY_LOW_SIM_FLOOR",     "0.93"))   # Gần như giống nhau
